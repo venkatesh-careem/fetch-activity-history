@@ -12,7 +12,6 @@ def pad_left_spaces($len):
   | ($len - length) as $pad
   | if $pad > 0 then repeat(" "; $pad) + . else . end;
 
-
 def pad_right_spaces($len):
   tostring
   | ($len - length) as $pad
@@ -22,28 +21,106 @@ def to_localtime:
   fromdateiso8601
   | strflocaltime("%Y-%m-%d %H:%M:%S GMT%Z");
 
+# ---------- ANSI coloring helpers ----------
+def ESC: "\u001b[";                               # same as \x1b[
+def C($n; $s): (ESC + ($n|tostring) + "m")        # wrap in color + reset
+               + ($s|tostring)
+               + (ESC + "0m");
+
+# Maps: choose color code based on raw value, but color the padded display
+def color_status($raw; $disp):
+  ($raw|tostring|ascii_downcase) as $x
+  | (if ($x | test("completed|success")) then 32          # green
+     elif ($x | test("failed|error"))   then 31           # red
+     elif ($x | test("ongoing|pending")) then 33          # yellow
+     elif ($x | test("processing|in_progress")) then 33   # yellow
+     else 90                                                  # dim
+     end) as $c
+  | C($c; $disp);
+
+def color_provider($raw; $disp):
+  ($raw|tostring|ascii_downcase) as $x
+  | (if   $x == "careem-rides" then "92"  # bright green
+     elif $x == "careem-rh"    then "94"  # bright blue
+     elif $x == "hala-rides"   then "96"  # bright cyan
+     else "90"                          # dim/default
+     end) as $c
+  | C($c; $disp);
+
+def color_profile($raw; $disp):  # booking_type
+  ($raw|tostring|ascii_downcase) as $x
+  | (if ($x | test("business|corporate"))   then 36        # cyan
+     elif ($x | test("personal|consumer"))  then 35        # magenta
+     else 90
+     end) as $c
+  | C($c; $disp);
+
+def color_booking_type($raw; $disp):
+  ($raw|tostring|ascii_downcase) as $x
+  | (if   ($x | test("now"))   then "1;32"   # bold green
+     elif ($x | test("later")) then "34"     # blue
+     else "90"                        # dim/default
+     end) as $c
+  | C($c; $disp);
+
+def color_pm_type($raw; $disp):  # payment_method.type
+  ($raw|tostring|ascii_downcase) as $x
+  | (if    ($x | test("credit-card"))        then "32"   # green
+     elif  ($x | test("cash"))               then "33"   # yellow
+     elif  ($x | test("invoice"))            then "34"   # blue
+     elif  ($x | test("delegated-wallet"))   then "96"   # bright cyan
+     elif  ($x | test("digital-wallet"))     then "36"   # cyan
+     else "90"
+     end) as $c
+  | C($c; $disp);
+
+def color_payment_profile($raw; $disp):  # data.payment_profile
+  ($raw|tostring|ascii_downcase) as $x
+  | (if    ($x | test("company|business|corp")) then "94"  # bright blue
+     elif  ($x | test("personal|consumer"))      then "96"  # bright cyan
+     else "90"
+     end) as $c
+  | C($c; $disp);
+
 .activities[]
 | (
-    # "\(.user_id)\t" +
-    "\(.created_at | to_localtime)\t" +
-    "\(.country)\t" +
-    "\(.provider)\t" +
-    "\(.reference_id | pad_right_spaces(36))\t" +
-    "\(.data.booking_type // "-" | pad_right_spaces(5))\t" +
-    "\(.status)\t" +
-    (
-      .data.distance // "__.__"
-      | tostring
-      | split(".")
-      | (
-          (.[0] | pad_left_spaces(3))
-          + "."
-          + ((.[1] // "00") | .[0:2])
-        )
-    )
+    # capture raw values to classify
+    .status as $status_raw
+    | (.data.booking_type // "-") as $booking_type
+    | (.data.payment_method.type // "-") as $type_raw
+    | (.data.payment_profile // "-") as $pmprofile_raw
+    | (.provider // "-") as $provider_raw
+
+    # build line, padding first, then coloring selected fields
+    | "\(.created_at | to_localtime)\t"
+    + "\(.country)\t"
+    + (
+        ($provider_raw | pad_right_spaces(12)) as $prov_disp | color_provider($provider_raw; $prov_disp)
+      ) + "\t"
+    + "\(.reference_id | pad_right_spaces(36))\t"
+    + (
+        ($booking_type | pad_right_spaces(5)) as $booking_type_disp | color_booking_type($booking_type; $booking_type_disp)
+      ) + "\t"
+    + (color_status($status_raw; $status_raw)) + "\t"
+    + (
+        .data.distance // "__.__"
+        | tostring
+        | split(".")
+        | (
+            (.[0] | pad_left_spaces(3))
+            + "."
+            + ((.[1] // "00") | .[0:2])
+          )
+      )
     + " km\t"
     + "\(.pricing.currency) " + "\(.pricing.total_price | pad_right_spaces(7))\t"
-    + "\(.data.payment_method.type // "-" | pad_right_spaces(16))\t"
-    + "\(.data.payment_profile // "-" | pad_right_spaces(8))"
+    + (
+        ($type_raw | pad_right_spaces(16)) as $type_disp
+        | color_pm_type($type_raw; $type_disp)
+      ) + "\t"
+    + (
+        ($pmprofile_raw | pad_right_spaces(8)) as $pmprof_disp
+        | color_payment_profile($pmprofile_raw; $pmprof_disp)
+      )
   )
 
