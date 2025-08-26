@@ -1,0 +1,36 @@
+#!/bin/sh
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+BOLD='\033[1m' # Bold
+NORMAL='\033[0m' # Normal
+
+BASE_URL='https://activity-service.prod.careem-rh.com'
+
+for (( i=1; i<=$#; i++ ))
+do
+  eval arg=\${$i}
+  USERID="$arg"
+  echo ""
+  echo  "Activity_History_of_User: #${GREEN}${BOLD}${USERID}${NC}"
+  echo ""
+
+  URL="${BASE_URL}/v2/user/$USERID/activities\?activity_type\=ride\&PageLimit\=100" 
+
+  echo "curl ${URL}"
+
+  printf "%s %s %s %s %s %s %s %s %s %s %s %s\n" "created_at" "booking_id" "type" "status" "provider_id" "product_name"  "profile" "payment_method_type" "_" "fare" "length" "_"
+  curl --no-progress-meter ${URL} | jq -r '.activities[] | "\(.created_at)\t\(.reference_id)\t\(.data.booking_type)\t\(.status)\t\(.provider_id)\t\(.data.product.name | gsub("[^[:alnum:]]+"; "_"))\t\(.data.payment_profile)\t\(.data.payment_method.type)\t\(.pricing.currency) \(.pricing.total_price)\t\(.data.distance) km"'
+  # TZ=Asia/Dubai curl --no-progress-meter "${BASE_URL}/v2/user/${USERID}/activities?activity_type=ride&PageLimit=100" |
+  #  jq -r '
+  #    .activities[] |
+  #    # Parse ISO‑8601 UTC timestamp, then format in Gulf Standard Time
+  #   (.created_at | fromdateiso8601 | strflocaltime("%Y-%m-%dT%H:%M:%S%Z")) as $gst |
+  #   "\($gst)\t\(.reference_id)\t\(.data.booking_type)\t\(.status)\t\(.provider_id)\t" +
+  #   (.data.product.name | gsub("[[:space:]]+"; "_")) +
+  #   "\t\(.data.payment_profile)\t\(.data.payment_method.type)\t\(.pricing.currency) \(.pricing.total_price)\t\(.data.distance) km"
+  # '
+
+  echo ""
+done
+

@@ -1,0 +1,7 @@
+#!/bin/sh
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+USERID=$1
+echo  "Activity history for user # ${GREEN}${USERID}${NC}"
+curl --no-progress-meter https://activity-service.prod.careem-rh.com/v2/user/$USERID/activities\?activity_type\=ride | jq
