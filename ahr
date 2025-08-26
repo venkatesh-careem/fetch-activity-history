@@ -1,15 +1,26 @@
 #!/bin/sh
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
+BOLD='\033[1m' # Bold
+NORMAL='\033[0m' # Normal
+
+SCRIPT_DIR="$(dirname "$0")"
+BASE_URL='https://activity-service.prod.careem-rh.com'
 
 for (( i=1; i<=$#; i++ ))
 do
   eval arg=\${$i}
   USERID="$arg"
+
   echo ""
-  echo  "Activity history for user # ${GREEN}${USERID}${NC}"
-  curl --no-progress-meter https://activity-service.prod.careem-rh.com/v2/user/$USERID/activities\?activity_type\=ride\&provider_id\=16 | jq -r '.activities[] | "\(.created_at)\t\(.reference_id)\t\(.status)\t\(.provider_id)\t\(.data.payment_method.type)\t\(.pricing.currency) \(.pricing.total_price)\t\(.data.distance) km"'
+  echo  "Activity_History_of_User: ${GREEN}${BOLD}${USERID}${NC}"
   echo ""
+
+  URL="${BASE_URL}/v2/user/${USERID}/activities?activity_type=ride&provider_id=16"
+
+  curl --no-progress-meter $URL | jq -rf $SCRIPT_DIR/filter.jq
+
 done
 

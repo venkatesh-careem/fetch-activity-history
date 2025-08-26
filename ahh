@@ -18,7 +18,7 @@ do
   echo  "Activity_History_of_User: ${GREEN}${BOLD}${USERID}${NC}"
   echo ""
 
-  URL="${BASE_URL}/v2/user/${USERID}/activities?activity_type=ride&provider_id=2"
+  URL="${BASE_URL}/v2/user/${USERID}/activities?activity_type=ride&provider_id=10"
 
   curl --no-progress-meter $URL | jq -rf $SCRIPT_DIR/filter.jq
 

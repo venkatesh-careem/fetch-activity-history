@@ -24,7 +24,7 @@ def to_localtime:
 
 .activities[]
 | (
-    "\(.user_id)\t" +
+    # "\(.user_id)\t" +
     "\(.created_at | to_localtime)\t" +
     "\(.country)\t" +
     "\(.provider)\t" +
@@ -43,7 +43,7 @@ def to_localtime:
     )
     + " km\t"
     + "\(.pricing.currency) " + "\(.pricing.total_price | pad_right_spaces(7))\t"
-    + "\(.data.payment_method.type // "-" | pad_right_spaces(11))\t"
+    + "\(.data.payment_method.type // "-" | pad_right_spaces(16))\t"
     + "\(.data.payment_profile // "-" | pad_right_spaces(8))"
   )
 
