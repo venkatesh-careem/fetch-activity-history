@@ -1,4 +1,5 @@
-# Simple helper to repeat a string n times
+# Filtering and presentation logic lies here
+
 def repeat($s; $n):
   if $n > 0 then [range(0; $n)] | map($s) | add else "" end;
 
@@ -82,7 +83,11 @@ def color_payment_profile($raw; $disp):  # data.payment_profile
      end) as $c
   | C($c; $disp);
 
-.activities[]
+def init_limit:
+  (($ARGS.named.limit? // 10) | tonumber? // 10);
+
+init_limit as $limit
+| limit($limit; .activities[])
 | (
     # capture raw values to classify
     .status as $status_raw
@@ -101,7 +106,9 @@ def color_payment_profile($raw; $disp):  # data.payment_profile
     + (
         ($booking_type | pad_right_spaces(5)) as $booking_type_disp | color_booking_type($booking_type; $booking_type_disp)
       ) + "\t"
-    + (color_status($status_raw; $status_raw)) + "\t"
+    + (
+        ($status_raw | pad_right_spaces(9)) as $status_disp | color_status($status_raw; $status_disp)
+      ) + "\t"
     + (
         .data.distance // "__.__"
         | tostring
@@ -121,6 +128,7 @@ def color_payment_profile($raw; $disp):  # data.payment_profile
     + (
         ($pmprofile_raw | pad_right_spaces(8)) as $pmprof_disp
         | color_payment_profile($pmprofile_raw; $pmprof_disp)
-      )
+      ) + "\t"
+    + "\(.user_id)"
   )
 

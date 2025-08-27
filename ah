@@ -8,19 +8,56 @@ NORMAL='\033[0m' # Normal
 
 SCRIPT_DIR="$(dirname "$0")"
 BASE_URL='https://activity-service.prod.careem-rh.com'
+LIMIT=10
+
+while getopts "n:h" opt; do
+  case $opt in
+    n)
+      LIMIT="$OPTARG"
+      # echo "Option -n with argument: $LIMIT"
+      ;;
+    h)
+      echo "Usage: $0 [-n limit:10] userid1 ..."
+      exit 0
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND-1))
 
 for (( i=1; i<=$#; i++ ))
 do
+
   eval arg=\${$i}
   USERID="$arg"
 
   echo ""
-  echo  "Activity_History_of_User: ${GREEN}${BOLD}${USERID}${NC}"
+  echo "Activity_History_of_User: ${GREEN}${BOLD}${USERID}${NC}"
   echo ""
 
-  URL="${BASE_URL}/v2/user/${USERID}/activities?activity_type=ride"
+  has_next='true'
+  next_cursor=
+  limit=$LIMIT
 
-  curl --no-progress-meter $URL | jq -rf $SCRIPT_DIR/filter.jq
+  while (( limit > 0 )) && [ "$has_next" == 'true' ]; do
+
+    URL="${BASE_URL}/v2/user/${USERID}/activities?activity_type=ride&next_cursor=$next_cursor"
+
+    json_data=$(curl -s ${URL})
+
+    echo "$json_data" | jq --arg limit $limit -rf $SCRIPT_DIR/filter.jq
+
+    count=$(echo "$json_data" | jq --arg limit $limit -r ".activities[0:$limit] | length")
+
+    ((limit -= count))
+
+    next_cursor=$(echo "$json_data" | jq -r '.paging.next_cursor')
+    has_next=$(echo "$json_data" | jq -r '.paging.has_next // false')
+
+  done
 
 done
 
