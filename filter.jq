@@ -33,7 +33,7 @@ def color_status($raw; $disp):
   ($raw|tostring|ascii_downcase) as $x
   | (if ($x | test("completed|success")) then 32          # green
      elif ($x | test("failed|error"))   then 31           # red
-     elif ($x | test("ongoing|pending")) then 33          # yellow
+     elif ($x | test("ongoing|scheduled")) then 33          # yellow
      elif ($x | test("processing|in_progress")) then 33   # yellow
      else 90                                                  # dim
      end) as $c
@@ -44,6 +44,7 @@ def color_provider($raw; $disp):
   | (if   $x == "careem-rides" then "92"  # bright green
      elif $x == "careem-rh"    then "94"  # bright blue
      elif $x == "hala-rides"   then "96"  # bright cyan
+     elif $x == "careem-c4b-rides"   then "98"  # bright cyan
      else "90"                          # dim/default
      end) as $c
   | C($c; $disp);
@@ -95,20 +96,21 @@ init_limit as $limit
     | (.data.payment_method.type // "-") as $type_raw
     | (.data.payment_profile // "-") as $pmprofile_raw
     | (.provider // "-") as $provider_raw
+    | (.country // "-") as $country_raw
 
     # build line, padding first, then coloring selected fields
-    | "\(.created_at | to_localtime)\t"
-    + "\(.country)\t"
+    | "\(.created_at | to_localtime)  "
+    + "\($country_raw | pad_right_spaces(3))  "
     + (
-        ($provider_raw | pad_right_spaces(12)) as $prov_disp | color_provider($provider_raw; $prov_disp)
-      ) + "\t"
-    + "\(.reference_id | pad_right_spaces(36))\t"
+        ($provider_raw | pad_right_spaces(16)) as $prov_disp | color_provider($provider_raw; $prov_disp)
+      ) + "  "
+    + "\(.reference_id | pad_right_spaces(36))  "
     + (
         ($booking_type | pad_right_spaces(5)) as $booking_type_disp | color_booking_type($booking_type; $booking_type_disp)
-      ) + "\t"
+      ) + "  "
     + (
         ($status_raw | pad_right_spaces(9)) as $status_disp | color_status($status_raw; $status_disp)
-      ) + "\t"
+      ) + "  "
     + (
         .data.distance // "__.__"
         | tostring
@@ -120,15 +122,17 @@ init_limit as $limit
           )
       )
     + " km\t"
-    + "\(.pricing.currency) " + "\(.pricing.total_price | pad_right_spaces(7))\t"
+    + "\(.pricing.currency) " + "\(.pricing.total_price | pad_right_spaces(7))  "
     + (
         ($type_raw | pad_right_spaces(16)) as $type_disp
         | color_pm_type($type_raw; $type_disp)
-      ) + "\t"
+      ) + "  "
     + (
         ($pmprofile_raw | pad_right_spaces(8)) as $pmprof_disp
         | color_payment_profile($pmprofile_raw; $pmprof_disp)
-      ) + "\t"
-    + "\(.user_id)"
+      ) + "  "
+    + "\(.data.cctid | pad_right_spaces(36))" + "  "
+    + "\(.user_id)" + "  "
+    + "\(.data.product.name // " " | gsub("\\s+"; "_"))"
   )
 
