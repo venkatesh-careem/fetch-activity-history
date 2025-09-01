@@ -13,7 +13,7 @@ def pad_right_spaces($len):
 "\(.userId | pad_right_spaces(10))" +
 "\(.fullName | pad_right_spaces(20))" +
 "\(.countryId // "-" | pad_right_spaces(4))" +
-"\(.companyId // "-" | pad_right_spaces(4))" +
+"\(.companyId // "-" | pad_right_spaces(6))" +
 "\(.email | pad_right_spaces(54))" +
 "\(.companyName // "-" | pad_right_spaces(32))" +
 ""
