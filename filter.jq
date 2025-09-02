@@ -133,6 +133,6 @@ init_limit as $limit
       ) + "  "
     + "\(.data.cctid | pad_right_spaces(36))" + "  "
     + "\(.user_id)" + "  "
-    + "\(.data.product.name // " " | gsub("\\s+"; "_"))"
+    + "\(.data.product.name // .data.captain.vehicle.make + " " + .data.captain.vehicle.model + " " + .data.captain.vehicle.color | gsub("\\s+"; "_"))"
   )
 
