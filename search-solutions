@@ -5,6 +5,27 @@ if [ "${AUTH_HEADER_SOLUTIONS}" = "" ]; then
   exit 1
 fi
 
+USERID_ONLY=0
+
+while getopts "uh" opt; do
+  case $opt in
+    u)
+      USERID_ONLY=1
+      # echo "Option -u"
+      ;;
+    h)
+      echo "Usage: $0 [-u] phone_no/userid/email/name ..."
+      exit 0
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+
 for (( i=1; i<=$#; i++ ))
 do
 
@@ -17,12 +38,22 @@ do
     searchKey="#${searchKey}"
   fi
 
-  curl --no-progress-meter 'https://solutions.careempartner.com/user/quickSearch' \
-    -H 'accept: */*' \
-    -H 'accept-language: en-US,en;q=0.9' \
-    -H 'content-type: application/json' \
-    -b "${AUTH_HEADER_SOLUTIONS}" \
-    --data-raw "{\"serviceProviderId\":1,\"searchKey\":\"${searchKey}\",\"start\":0}" \
-    | jq -r -f ~/bin/filter-solutions.jq
+  if [ $USERID_ONLY -eq 1 ]; then
+    curl --no-progress-meter 'https://solutions.careempartner.com/user/quickSearch' \
+      -H 'accept: */*' \
+      -H 'accept-language: en-US,en;q=0.9' \
+      -H 'content-type: application/json' \
+      -b "${AUTH_HEADER_SOLUTIONS}" \
+      --data-raw "{\"serviceProviderId\":1,\"searchKey\":\"${searchKey}\",\"start\":0}" \
+      | jq -r -f ~/bin/filter-solutions-userid.jq
+  else
+    curl --no-progress-meter 'https://solutions.careempartner.com/user/quickSearch' \
+      -H 'accept: */*' \
+      -H 'accept-language: en-US,en;q=0.9' \
+      -H 'content-type: application/json' \
+      -b "${AUTH_HEADER_SOLUTIONS}" \
+      --data-raw "{\"serviceProviderId\":1,\"searchKey\":\"${searchKey}\",\"start\":0}" \
+      | jq -r -f ~/bin/filter-solutions.jq
+  fi
 
 done

@@ -11,7 +11,7 @@ def pad_right_spaces($len):
 
 "\(.phoneNumber | pad_right_spaces(14))" +
 "\(.userId | pad_right_spaces(10))" +
-"\(.fullName | pad_right_spaces(20))" +
+"\(.fullName | pad_right_spaces(24))" +
 "\(.countryId // "-" | pad_right_spaces(4))" +
 "\(.companyId // "-" | pad_right_spaces(6))" +
 "\(.email | pad_right_spaces(54))" +
