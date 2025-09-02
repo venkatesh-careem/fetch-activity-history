@@ -10,14 +10,18 @@ SCRIPT_DIR="$(dirname "$0")"
 BASE_URL='https://activity-service.prod.careem-rh.com'
 LIMIT=10
 
-while getopts "n:h" opt; do
+RAW_MODE=0
+
+while getopts "rn:h" opt; do
   case $opt in
     n)
       LIMIT="$OPTARG"
-      # echo "Option -n with argument: $LIMIT"
+      ;;
+    r)
+      RAW_MODE=1
       ;;
     h)
-      echo "Usage: $0 [-n limit:10] userid1 ..."
+      echo "Usage: $0 [-n limit:10] [-r] userid1 ..."
       exit 0
       ;;
     \?)
@@ -28,27 +32,29 @@ while getopts "n:h" opt; do
 done
 shift $((OPTIND-1))
 
-for (( i=1; i<=$#; i++ ))
-do
-
-  eval arg=\${$i}
-  USERID="$arg"
+function print_activities {
+  local USERID=$1
+  local limit=$2
 
   echo ""
-  echo "Activity_History_of_User: ${GREEN}${BOLD}${USERID}${NC}"
+  echo "Activity_History_of_User[$limit]: ${GREEN}${BOLD}${USERID}${NC}"
   echo ""
 
-  has_next='true'
-  next_cursor=
-  limit=$LIMIT
+  local has_next='true'
+  local next_cursor=
 
   while (( limit > 0 )) && [ "$has_next" == 'true' ]; do
 
-    URL="${BASE_URL}/v2/user/${USERID}/activities?activity_type=ride&next_cursor=$next_cursor"
+    local URL="${BASE_URL}/v2/user/${USERID}/activities?activity_type=ride&next_cursor=$next_cursor"
 
-    json_data=$(curl -s ${URL})
+    local json_data=$(curl -s ${URL})
 
-    echo "$json_data" | jq --arg limit $limit -rf $SCRIPT_DIR/filter.jq
+    if [ $RAW_MODE -eq 1 ]; then
+      echo "$json_data" | jq --arg limit $limit -r ".activities[0:$limit]"
+    else
+      echo "$json_data" | jq --arg limit $limit -rf $SCRIPT_DIR/filter.jq
+    fi
+
 
     count=$(echo "$json_data" | jq --arg limit $limit -r ".activities[0:$limit] | length")
 
@@ -58,6 +64,19 @@ do
     has_next=$(echo "$json_data" | jq -r '.paging.has_next // false')
 
   done
+}
 
-done
+
+if [ -p /dev/stdin ]; then
+  while IFS= read -r USERID; do
+    print_activities $USERID $LIMIT
+  done
+else
+  for (( i=1; i<=$#; i++ ))
+  do
+    eval arg=\${$i}
+    USERID="$arg"
+    print_activities $USERID $LIMIT
+  done
+fi
 
