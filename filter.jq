@@ -124,6 +124,16 @@ init_limit as $limit
     + " km\t"
     + "\(.pricing.currency) " + "\(.pricing.total_price | pad_right_spaces(7))  "
     + (
+        (.data? // {}) as $d
+        | ($d.package_consumed?) as $pc
+        | if ($pc | type) != "object" then "---------  "               # 11 chars wide
+          else
+            "\(($pc.consumed_units  // "00") | pad_left_zeros(2))u;" +
+            "\(($pc.remaining_units // "" ) | pad_left_zeros(2))/"  +
+            "\(($pc.total_units    // "" ) | pad_left_zeros(2))  "
+          end
+      )
+    + (
         ($type_raw | pad_right_spaces(16)) as $type_disp
         | color_pm_type($type_raw; $type_disp)
       ) + "  "
