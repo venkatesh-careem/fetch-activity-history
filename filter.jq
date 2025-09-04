@@ -87,6 +87,16 @@ def color_payment_profile($raw; $disp):  # data.payment_profile
 def init_limit:
   (($ARGS.named.limit? // 10) | tonumber? // 10);
 
+# Format numeric/string input as: 00.00 (integer min 2 digits, exactly 2 decimals)
+def fmt_money_2d:
+  tostring as $s
+  | ($s | startswith("-")) as $neg
+  | ($s | ltrimstr("-") | split(".")) as $p
+  | (if $neg then "-" else "" end)
+    + ($p[0] | pad_left_zeros(2))
+    + "."
+    + ((($p[1] // "00") + "00")[0:2]);
+
 init_limit as $limit
 | limit($limit; .activities[])
 | (
@@ -122,7 +132,17 @@ init_limit as $limit
           )
       )
     + " km\t"
-    + "\(.pricing.currency) " + "\(.pricing.total_price | pad_right_spaces(7))  "
+    + (
+    (.pricing? // {}) as $pr
+        | if ($pr | type) != "object" then
+            # Fixed-width placeholder when .pricing is missing/null: "___ __.__" + 2 spaces
+          "___ " + ("__.__" | pad_right_spaces(7)) + "  "
+        else
+          # Currency from JSON (padded to 3 for alignment) + formatted amount (width = 7)
+          (($pr.currency? // "___") | tostring | pad_right_spaces(3)) + " " +
+          ((($pr.total_price? // 0) | fmt_money_2d) | pad_right_spaces(7)) + "  "
+        end
+    )
     + (
         (.data? // {}) as $d
         | ($d.package_consumed?) as $pc
